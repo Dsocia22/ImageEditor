@@ -99,9 +99,20 @@ class Generator(nn.Module):
         return x
 
 
+class Vgg19Bottom(nn.Module):
+    def __init__(self, original_model):
+        super(Vgg19Bottom, self).__init__()
+        self.features = nn.Sequential(*list(original_model.children())[:-5])
+
+    def forward(self, x):
+        x = self.features(x)
+        return x
+
+
 class Loss:
     def __init__(self):
-        pass
+        vgg19 = torch.hub.load('pytorch/vision:v0.9.0', 'vgg19', pretrained=True)
+        self.vgg19 = Vgg19Bottom(vgg19)
 
     def color_loss(self):
         pass
@@ -109,8 +120,15 @@ class Loss:
     def texture_loss(self):
         pass
 
-    def content_loss(self):
-        pass
+    def content_loss(self, target_image, edit_image):
+        target_vgg = self.vgg19.forward(target_image)
+        edit_vgg = self.vgg19.forward(edit_image)
+
+        dist = torch.cdist(target_vgg, edit_vgg, p=2)
+
+        loss = 1/torch.numel(edit_vgg) * dist
+
+        return loss
 
     def tv_loss(self):
         pass
