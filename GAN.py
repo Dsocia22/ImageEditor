@@ -89,7 +89,7 @@ class Generator(nn.Module):
 
         x = self.conv3(x)
         x = self.activation(x)
-        
+
         x = self.conv3(x)
         x = self.activation(x)
 
@@ -97,3 +97,24 @@ class Generator(nn.Module):
         x = self.tanh(x)
 
         return x
+
+
+class Loss:
+    def __init__(self):
+        pass
+
+    def color_loss(self):
+        pass
+
+    def texture_loss(self):
+        pass
+
+    def content_loss(self):
+        pass
+
+    def tv_loss(self):
+        pass
+
+    def total_loss(self):
+        pass
+
