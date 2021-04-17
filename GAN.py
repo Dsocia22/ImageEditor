@@ -48,3 +48,52 @@ class Discriminator(nn.Module):
         x = torch.sigmoid(x)
 
         return x
+
+
+class Generator(nn.Module):
+    def __init__(self):
+        super(Generator, self).__init__()
+
+        self.conv9 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=9)
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3)
+
+        self.batch = nn.BatchNorm2d(num_features=64)
+
+        self.activation = nn.ReLU()
+
+        self.tanh = nn.Tanh()
+
+    def residual_block(self, x):
+        residual = x
+
+        x = self.conv3(x)
+        x = self.activation(x)
+
+        x = self.batch(x)
+
+        x = self.conv3(x)
+        x = self.activation(x)
+
+        x = self.batch(x)
+
+        return x + residual
+
+    def forward(self, x):
+        x = self.conv9(x)
+        x = self.activation(x)
+
+        x = self.residual_block(x)
+        x = self.residual_block(x)
+        x = self.residual_block(x)
+        x = self.residual_block(x)
+
+        x = self.conv3(x)
+        x = self.activation(x)
+        
+        x = self.conv3(x)
+        x = self.activation(x)
+
+        x = self.conv9(x)
+        x = self.tanh(x)
+
+        return x
