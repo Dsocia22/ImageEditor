@@ -19,7 +19,7 @@ from torchvision.io import read_image
 import glob
 
 class ImageDataset(Dataset):
-    def __init__(self, img_dir,split = None, image_format = 'PNG', transform=None):
+    def __init__(self, img_dir,split = None, image_format = 'JPG', transform=None):
         '''
         Initialize the image dataset. 
 
@@ -30,7 +30,7 @@ class ImageDataset(Dataset):
         split : pandas series
             Which indicies to include. Used in train/test split.
         image_format : string, optional
-            The image format, used to point the dataset constructor at the correct folder. The default is 'PNG'.
+            The image format, used to point the dataset constructor at the correct folder. The default is 'JPEG'.
         transform : function, optional
             A transformation for the orignial image.
 
@@ -184,7 +184,7 @@ def perform_tests_dataloader(dataloader,plot = True):
         
 
 if __name__ == '__main__':
-    img_size = [100,100]
+    img_size = [512,512]
     # Create a dataset with all objects. Expect 25,000 entries a priori.
     dataset = ImageDataset('D:\\fivek_dataset',transform = RandomCrop(img_size))
     perform_tests_dataset(dataset,25000)
