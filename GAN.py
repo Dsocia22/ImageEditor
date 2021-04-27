@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torchgeometry.image.gaussian import gaussian_blur
 from torch import optim
 import torch.nn.functional as F
 
@@ -110,29 +111,55 @@ class Vgg19Bottom(nn.Module):
 
 
 class Loss:
-    def __init__(self):
+    def __init__(self, weight_color, weight_texture, weight_content, weight_tv, gaussian_kernel_shape=21, gaussian_sigma=3):
+
+        self.kernel_size = (gaussian_kernel_shape, gaussian_kernel_shape)
+        self.sigma = (gaussian_sigma, gaussian_sigma)
+
+        # loss weights
+        self.w_color = weight_color
+        self.w_text = weight_texture
+        self.w_content = weight_content
+        self.w_tv = weight_tv
+
         vgg19 = torch.hub.load('pytorch/vision:v0.9.0', 'vgg19', pretrained=True)
         self.vgg19 = Vgg19Bottom(vgg19)
 
-    def color_loss(self):
+    def color_loss(self, edit_image, target_image):
+        """color loss - compars colors between edited and target images
+        images are blurred to remove textures"""
+        blurred_edit = gaussian_blur(edit_image, self.kernel_size, self.sigma)
+        blurred_target = gaussian_blur(target_image, self.kernel_size, self.sigma)
+
+        loss = torch.norm(blurred_edit - blurred_target)
+        return loss
+
+    def texture_loss(self, edit_image, target_image):
         pass
 
-    def texture_loss(self):
-        pass
-
-    def content_loss(self, target_image, edit_image):
+    def content_loss(self, edit_image, target_image):
+        """content loss - compares feature maps to encourage similar features in images"""
         target_vgg = self.vgg19.forward(target_image)
         edit_vgg = self.vgg19.forward(edit_image)
 
-        dist = torch.cdist(target_vgg, edit_vgg, p=2)
+        dist = torch.norm(edit_vgg - target_vgg)
 
         loss = 1/torch.numel(edit_vgg) * dist
 
         return loss
 
-    def tv_loss(self):
-        pass
+    def tv_loss(self, edit_image):
+        """total variational loss - enforces spatial smoothness"""
+        tv_h = torch.pow(edit_image[:, :, 1:, :] - edit_image[:, :, :-1, :], 2).sum()
+        tv_w = torch.pow(edit_image[:, :, :, 1:] - edit_image[:, :, :, :-1], 2).sum()
+        return (tv_h + tv_w) / torch.numel(edit_image)
 
-    def total_loss(self):
-        pass
+    def total_loss(self, edit_image, target_image):
+        color_loss = self.w_color * self.color_loss(edit_image, target_image)
+        texture_loss = self.w_text * self.texture_loss(edit_image, target_image)
+        content_loss = self.w_content * self.content_loss(edit_image, target_image)
+        tv_loss = self.w_tv * self.tv_loss(edit_image)
+
+        return color_loss + texture_loss + content_loss + tv_loss
+
 

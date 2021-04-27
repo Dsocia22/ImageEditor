@@ -180,14 +180,13 @@ def perform_tests_dataloader(dataloader,plot = True):
             
         plt.subplots_adjust(wspace=0.1, hspace=0.1)
         plt.show()
-        
-        
+
 
 if __name__ == '__main__':
-    img_size = [512,512]
+    img_size = [512, 512]
     # Create a dataset with all objects. Expect 25,000 entries a priori.
     dataset = ImageDataset('D:\\fivek_dataset',transform = RandomCrop(img_size))
-    perform_tests_dataset(dataset,25000)
+    perform_tests_dataset(dataset, 25000)
     dataloader = DataLoader(dataset, batch_size = 3, shuffle=True)
     perform_tests_dataloader(dataloader)
     
