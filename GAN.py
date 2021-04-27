@@ -1,24 +1,23 @@
 import torch
 import torch.nn as nn
 from torchgeometry.image.gaussian import gaussian_blur
-from torch import optim
-import torch.nn.functional as F
 
 
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
 
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=48, kernel_size=11, stride=4)
-        self.conv2 = nn.Conv2d(in_channels=48, out_channels=128, kernel_size=5, stride=2)
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=48, kernel_size=11, stride=4, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=48, out_channels=128, kernel_size=5, stride=2, padding=1)
         self.conv3 = nn.Conv2d(in_channels=128, out_channels=192, kernel_size=3)
         self.conv4 = nn.Conv2d(in_channels=192, out_channels=192, kernel_size=3)
-        self.conv5 = nn.Conv2d(in_channels=192, out_channels=128, kernel_size=3, stride=2)
+        self.conv5 = nn.Conv2d(in_channels=192, out_channels=128, kernel_size=3, stride=2, padding=1)
 
         self.batch128 = nn.BatchNorm2d(num_features=128)
         self.batch192 = nn.BatchNorm2d(num_features=192)
 
-        self.full = nn.Linear(in_features=128, out_features=1024)
+        self.full = nn.Linear(in_features=107648, out_features=1024)
+        self.out = nn.Linear(in_features=1024, out_features=2)
 
         self.activation = nn.LeakyReLU()
 
@@ -44,8 +43,12 @@ class Discriminator(nn.Module):
         x = self.conv5(x)
         x = self.activation(x)
 
-        x = self.full(x)
+        x = torch.flatten(x, start_dim=1, end_dim=-1)
 
+        x = self.full(x)
+        x = self.activation(x)
+
+        x = self.out(x)
         x = torch.sigmoid(x)
 
         return x

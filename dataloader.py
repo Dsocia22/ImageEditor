@@ -19,7 +19,7 @@ from torchvision.io import read_image
 import glob
 
 class ImageDataset(Dataset):
-    def __init__(self, img_dir,split = None, image_format = 'JPG', transform=None):
+    def __init__(self, img_dir, split=None, image_format='JPG', transform=None):
         '''
         Initialize the image dataset. 
 
@@ -100,6 +100,28 @@ class ImageDataset(Dataset):
             
         sample = {"original_image": original_image, "edited_image": edited_image}
         return sample
+
+
+def generate_test_train_dataloader(image_dir, batch_size, num_workers, test_split=0.2, val_split=0.2, img_size=(512, 512)):
+    # get number of files
+    cpt = 25000
+    # Get 80/20 test train splits. Form a series of True/False indicating if the value should be retained.
+    test_count = round(cpt * test_split)
+    train_count = cpt - test_count
+    # TODO: need validation split
+    train_split = pd.Series([True] * train_count + [False] * test_count).sample(frac=1).reset_index(drop=True)
+    test_split = ~train_split
+
+    train_dataset = ImageDataset(image_dir, split=train_split, transform=RandomCrop(img_size))
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+
+    test_dataset = ImageDataset(image_dir, split=test_split, transform=RandomCrop(img_size))
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+
+    # TODO: need validation data loader
+    val_dataset = None
+
+    return train_dataloader, val_dataset, test_dataloader
     
 def perform_tests_dataset(dataset,expected_len = None, idx_to_get = 0):
     '''
