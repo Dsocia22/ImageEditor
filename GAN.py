@@ -114,7 +114,7 @@ class Vgg19Bottom(nn.Module):
 
 
 class Loss:
-    def __init__(self, weight_color, weight_texture, weight_content, weight_tv, gaussian_kernel_shape=21, gaussian_sigma=3):
+    def __init__(self, weight_color=0.1, weight_texture=0.4, weight_content=1, weight_tv=400, gaussian_kernel_shape=21, gaussian_sigma=3):
 
         self.kernel_size = (gaussian_kernel_shape, gaussian_kernel_shape)
         self.sigma = (gaussian_sigma, gaussian_sigma)
@@ -129,7 +129,7 @@ class Loss:
         self.vgg19 = Vgg19Bottom(vgg19)
 
     def color_loss(self, edit_image, target_image):
-        """color loss - compars colors between edited and target images
+        """color loss - compares colors between edited and target images
         images are blurred to remove textures"""
         blurred_edit = gaussian_blur(edit_image, self.kernel_size, self.sigma)
         blurred_target = gaussian_blur(target_image, self.kernel_size, self.sigma)
@@ -137,8 +137,8 @@ class Loss:
         loss = torch.norm(blurred_edit - blurred_target)
         return loss
 
-    def texture_loss(self, edit_image, target_image):
-        pass
+    def texture_loss(self, disriminator_loss):
+        return -disriminator_loss
 
     def content_loss(self, edit_image, target_image):
         """content loss - compares feature maps to encourage similar features in images"""
@@ -157,9 +157,9 @@ class Loss:
         tv_w = torch.pow(edit_image[:, :, :, 1:] - edit_image[:, :, :, :-1], 2).sum()
         return (tv_h + tv_w) / torch.numel(edit_image)
 
-    def total_loss(self, edit_image, target_image):
+    def total_loss(self, edit_image, target_image, discriminator_loss):
         color_loss = self.w_color * self.color_loss(edit_image, target_image)
-        texture_loss = self.w_text * self.texture_loss(edit_image, target_image)
+        texture_loss = self.w_text * self.texture_loss(discriminator_loss)
         content_loss = self.w_content * self.content_loss(edit_image, target_image)
         tv_loss = self.w_tv * self.tv_loss(edit_image)
 
