@@ -165,7 +165,8 @@ class DiscriminatorTraining:
 
 
 if __name__ == '__main__':
-    img_dir = r'D:\fivek_dataset'
+    img_dir = os.getcwd()
+    #img_dir = 'D:\fivek_dataset'
 
     if torch.cuda.is_available():
         detected_gpus = torch.cuda.device_count()
@@ -175,7 +176,7 @@ if __name__ == '__main__':
 
     # Settings
     num_workers = 4
-    epochs = 100
+    epochs = 1
     #batch_size = 2
     no_cuda = False # If True run without cuda
     number_images = 5000 #(0,5000)

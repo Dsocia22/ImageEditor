@@ -14,11 +14,11 @@ from GAN import Discriminator, Generator, Loss
 
 class GeneratorTraining:
 
-    def __init__(self, generator_model, discriminator_model, image_dir, batch_size, num_workers, lr=5e-4):
+    def __init__(self, generator_model, discriminator_model, image_dir, batch_size, num_workers, lr=5e-4,no_cuda = False, number_images = 5000):
         self.phases = ['train', 'val', 'test']
 
         # set up device
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if (torch.cuda.is_available() and not no_cuda) else "cpu")
         print(self.device)
         cudnn.benchmark = True
 
@@ -50,7 +50,7 @@ class GeneratorTraining:
         self.d_optimizer = optim.Adam(self.d_net.parameters(), lr=lr)
         self.d_scheduler = ReduceLROnPlateau(self.d_optimizer, mode='min', patience=3, verbose=True)
 
-        datasets = generate_test_train_dataloader(image_dir, batch_size, num_workers)
+        datasets = generate_test_train_dataloader(image_dir, batch_size, num_workers,number_images=number_images)
 
         self.dataloader = {phase: data for phase, data in zip(self.phases, datasets)}
 
@@ -82,10 +82,10 @@ class GeneratorTraining:
             self.d_scheduler.step(self.stats['dis_val_loss'][-1])
 
             # save only the best model
-            if self.stats['gen_val_loss'][-1] < self.best_loss:
+            if self.stats['gen_val_loss'][-1] < self.g_best_loss:
                 state = {
                     "epoch": epoch,
-                    "best_loss": self.best_loss,
+                    "best_gen_loss": self.g_best_loss,
                     "generator_state_dict": self.g_net.state_dict(),
                     "generator_optimizer": self.g_optimizer.state_dict(),
                     "discriminator_state_dict": self.d_net.state_dict(),
@@ -93,7 +93,7 @@ class GeneratorTraining:
                 }
 
                 print("******** New optimal found, saving state ********")
-                state["best_loss"] = self.best_loss = self.stats['generator_val_loss'][-1]
+                state["best_gen_loss"] = self.gen_best_loss = self.stats['gen_val_loss'][-1]
                 torch.save(state, model_save_path)
 
         self.run_epoch('test')
@@ -117,7 +117,7 @@ class GeneratorTraining:
 
         # iterate over data
         for i, batch in enumerate(dataloader):
-            # images, labels = self.generate_batch(batch)
+            #images, labels = self.generate_batch(batch)
             orig_img = batch['original_image'].float().to(self.device)
             edit_img = batch['edited_image'].float().to(self.device)
             # label = labels.to(self.device)
@@ -141,7 +141,7 @@ class GeneratorTraining:
 
                 # the backward pass frees the graph memory, so there is no
                 # need for torch.no_grad in this training pass
-                dis_loss.backward()
+                dis_loss.backward(retain_graph = True)
                 gen_loss.backward()
                 self.g_optimizer.step()
                 self.d_optimizer.step()
@@ -158,12 +158,12 @@ class GeneratorTraining:
                     dis_loss = self.criterion(outputs, labels)
                     gen_loss = self.gen_loss.total_loss(enhanced_img, orig_img, dis_loss)
 
-            dis_acc = (torch.max(outputs.data, dim=1).indices == labels).sum()
+            dis_acc = (torch.max(outputs.data, dim=1).indices == labels).sum()/orig_img.size()[0]
 
-            d_running_acc += dis_acc.item() * dataloader.batch_size * 2
-            d_running_loss += dis_loss.item() * dataloader.batch_size * 2
+            d_running_acc += dis_acc.item()# * dataloader.batch_size * 2
+            d_running_loss += dis_loss.item()# * dataloader.batch_size * 2
 
-            g_running_loss += gen_loss.item() * dataloader.batch_size
+            g_running_loss += gen_loss.item()# * dataloader.batch_size
 
             if step % 100 == 0:
                 print('Current step: {}  Generator Loss: {}  Discriminator Loss: {} Discriminator Acc: {}'.format(step, gen_loss, dis_loss, dis_acc))
@@ -187,25 +187,29 @@ class GeneratorTraining:
 
     @staticmethod
     def generate_batch(batch):
-        orig_images = batch['original_image']
-        edit_images = batch['edited_image']
+        #try:
+        #    orig_images = batch['original_image']
+        #    edit_images = batch['edited_image']
+        #except:
+        orig_images = batch[0]
+        edit_images = batch[1]
         labels = torch.LongTensor([0] * orig_images.size()[0] + [1] * edit_images.size()[0])
 
         images = torch.cat((orig_images, edit_images), dim=0)
 
         # shuffle data
         shuff = torch.randperm(images.size()[0])
-        images = images[shuff]
-        labels = labels[shuff]
+        images_ = images[shuff]
+        labels_ = labels[shuff]
 
-        return images, labels
+        return images_, labels_
 
 
 if __name__ == '__main__':
-    img_dir = r'D:\fivek_dataset'
+    img_dir = os.getcwd()
 
     # path to pretrained discriminator model
-    pretrained_discriminator_path = None
+    pretrained_discriminator_path = 'initial_discriminator_model_trained.pth'
 
     if torch.cuda.is_available():
         detected_gpus = torch.cuda.device_count()
@@ -214,8 +218,11 @@ if __name__ == '__main__':
         batch_size = 10
 
     num_workers = 4
-    epochs = 1
+    #batch_size = 2
+    epochs = 100
 
+    no_cuda = True
+    number_images = (0,5000)
     save_path = './'
 
     discriminator_model = Discriminator()
@@ -227,5 +234,5 @@ if __name__ == '__main__':
 
     generator_model = Generator()
 
-    trainer = GeneratorTraining(generator_model, discriminator_model, img_dir, batch_size, num_workers)
+    trainer = GeneratorTraining(generator_model, discriminator_model, img_dir, batch_size, num_workers,no_cuda = no_cuda, number_images =number_images)
     trainer.train(epochs, save_path)

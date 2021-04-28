@@ -44,15 +44,14 @@ class ImageDataset(Dataset):
         # Pattern to detect which file names match the desired format.
         label_list = []
         for expert in ['A','B','C','D','E']:
-            glob_pattern = 'Expert '+expert+'\\'+image_format.upper()+'\\*.'+image_format.lower()
-
+            glob_pattern = 'Expert '+expert+'/'+image_format.upper()+'/*.'+image_format.lower()
             # Get a series of file names matching the glob format.
             img_label_expert = pd.Series(glob.glob(os.path.join(img_dir,glob_pattern)))
             # If the dataset has some data held out, retain values where series split == True. Reset index. 
             if split is not None:
                 img_label_expert = img_label_expert[0:len(split)][split == retain].reset_index(drop = True)
             label_list.append(img_label_expert)
-            
+        
         self.img_labels = list(pd.concat(label_list))
         self.img_dir = img_dir
         # Note the image format, png, jpeg, ect..
@@ -111,13 +110,10 @@ class ImageDataset(Dataset):
 
 
 def generate_test_train_dataloader(image_dir, batch_size, num_workers, test_split=0.2, val_split=0.2, img_size=(512, 512),number_images = 5000):
-    # get number of files
-    
     # Get splits. Form a series of 0, 1, or 2 indicating which split an original image should belong to.
     test_count = round(number_images * test_split)
     val_count = round(number_images * val_split)
     train_count = number_images - test_count - val_count
-
     # 0 = training data, 1 = validation data, 2 = testing data
     splits = pd.Series([0] * train_count + [1] * val_count + [2] * test_count).sample(frac=1).reset_index(drop=True)
 

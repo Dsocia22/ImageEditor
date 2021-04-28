@@ -58,8 +58,9 @@ class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
 
-        self.conv9 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=9)
-        self.conv3 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3)
+        self.conv9_first = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=9,padding = 4)
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3,padding = 1)
+        self.conv9_last = nn.Conv2d(in_channels=64, out_channels=3, kernel_size=9,padding = 4)
 
         self.batch = nn.BatchNorm2d(num_features=64)
 
@@ -69,38 +70,40 @@ class Generator(nn.Module):
 
     def residual_block(self, x):
         residual = x
+        
+        out = self.conv3(x)
+        out = self.activation(out)
 
-        x = self.conv3(x)
-        x = self.activation(x)
+        out = self.batch(out)
 
-        x = self.batch(x)
+        out = self.conv3(out)
+        out = self.activation(out)
 
-        x = self.conv3(x)
-        x = self.activation(x)
+        out = self.batch(out)
+        
+        out += residual
 
-        x = self.batch(x)
-
-        return x + residual
+        return out
 
     def forward(self, x):
-        x = self.conv9(x)
-        x = self.activation(x)
+        out = self.conv9_first(x)
+        out = self.activation(out)
 
-        x = self.residual_block(x)
-        x = self.residual_block(x)
-        x = self.residual_block(x)
-        x = self.residual_block(x)
+        out = self.residual_block(out)
+        out = self.residual_block(out)
+        out = self.residual_block(out)
+        out = self.residual_block(out)
 
-        x = self.conv3(x)
-        x = self.activation(x)
+        out = self.conv3(out)
+        out = self.activation(out)
 
-        x = self.conv3(x)
-        x = self.activation(x)
+        out = self.conv3(out)
+        out = self.activation(out)
 
-        x = self.conv9(x)
-        x = self.tanh(x)
+        out = self.conv9_last(out)
+        out = self.tanh(out)
 
-        return x
+        return out
 
 
 class Vgg19Bottom(nn.Module):
