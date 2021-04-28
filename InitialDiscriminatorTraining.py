@@ -14,15 +14,15 @@ from GAN import Discriminator
 
 class DiscriminatorTraining:
 
-    def __init__(self, model, image_dir, batch_size, num_workers, lr=5e-4):
+    def __init__(self, model, image_dir, batch_size, num_workers, lr=5e-4, no_cuda=False,number_images = 5000):
         self.phases = ['train', 'val', 'test']
 
         # set up device
-        self.device = torch.device("cuda0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if (torch.cuda.is_available() and not no_cuda) else "cpu")
         print(self.device)
         cudnn.benchmark = True
-
-        if self.device == 'cuda0':
+        
+        if str(self.device) == 'cuda:0':
             torch.set_default_tensor_type("torch.cuda.FloatTensor")
         else:
             torch.set_default_tensor_type("torch.FloatTensor")
@@ -43,7 +43,7 @@ class DiscriminatorTraining:
         self.optimizer = optim.Adam(self.net.parameters(), lr=lr)
         self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', patience=3, verbose=True)
 
-        datasets = generate_test_train_dataloader(image_dir, batch_size, num_workers)
+        datasets = generate_test_train_dataloader(image_dir, batch_size, num_workers,number_images=number_images)
 
         self.dataloader = {phase: data for phase, data in zip(self.phases, datasets)}
 
@@ -126,10 +126,10 @@ class DiscriminatorTraining:
                     outputs = self.net(img)
                     loss = self.criterion(outputs, label)
 
-            acc = (torch.max(outputs.data, dim=1).indices == label).sum()
+            acc = (torch.max(outputs.data, dim=1).indices == label).sum()/img.size()[0]
 
-            running_acc += acc.item() * dataloader.batch_size * 2
-            running_loss += loss.item() * dataloader.batch_size * 2
+            running_acc += acc.item() #* dataloader.batch_size * 2
+            running_loss += loss.item() #* dataloader.batch_size * 2
 
             if step % 100 == 0:
                 print('Current step: {}  Loss: {}  Acc: {}'.format(step, loss, acc))
@@ -173,11 +173,16 @@ if __name__ == '__main__':
     else:
         batch_size = 10
 
+    # Settings
     num_workers = 4
-    epochs = 1
-
+    epochs = 100
+    #batch_size = 2
+    no_cuda = False # If True run without cuda
+    number_images = 5000 #(0,5000)
+    
     save_path = './'
 
     model = Discriminator()
-    trainer = DiscriminatorTraining(model, img_dir, batch_size, num_workers)
+    # 
+    trainer = DiscriminatorTraining(model, img_dir, batch_size, num_workers,no_cuda = no_cuda,number_images = number_images)
     trainer.train(epochs, save_path)
