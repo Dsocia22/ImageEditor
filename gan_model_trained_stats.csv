@@ -1,0 +1,2 @@
+gen_train_loss,gen_val_loss,dis_train_acc,dis_val_acc,dis_train_loss,dis_val_loss
+6092.75185546875,5863.447265625,0.24166666666666667,0.25,0.24448532462120057,0.21281254887580872

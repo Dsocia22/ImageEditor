@@ -214,15 +214,16 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         detected_gpus = torch.cuda.device_count()
         batch_size = 25 * detected_gpus
+        torch.multiprocessing.set_start_method('spawn')
     else:
         batch_size = 10
 
-    num_workers = 4
+    num_workers = 2
     #batch_size = 2
     epochs = 100
 
-    no_cuda = True
-    number_images = (0,5000)
+    no_cuda = False
+    number_images = 5000
     save_path = './'
 
     discriminator_model = Discriminator()

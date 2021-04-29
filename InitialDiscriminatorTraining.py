@@ -32,7 +32,7 @@ class DiscriminatorTraining:
         # distribute model on multiple gpus
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
-            model = torch.nn.DataParallel(model)
+            model = torch.nn.DataParallel(model) # Alex- I believe this is broken. 
 
         self.net = model
 
@@ -166,17 +166,18 @@ class DiscriminatorTraining:
 
 if __name__ == '__main__':
     img_dir = os.getcwd()
-    #img_dir = 'D:\fivek_dataset'
+    #img_dir = 'D:\\fivek_dataset\\'
 
     if torch.cuda.is_available():
         detected_gpus = torch.cuda.device_count()
         batch_size = 25 * detected_gpus
+        torch.multiprocessing.set_start_method('spawn')
     else:
         batch_size = 10
 
     # Settings
-    num_workers = 4
-    epochs = 1
+    num_workers = 2
+    epochs = 100
     #batch_size = 2
     no_cuda = False # If True run without cuda
     number_images = 5000 #(0,5000)
