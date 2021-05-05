@@ -47,10 +47,10 @@ class GeneratorTraining:
         self.criterion = torch.nn.CrossEntropyLoss()
 
         self.g_optimizer = optim.Adam(self.g_net.parameters(), lr=lr)
-        #self.g_scheduler = ReduceLROnPlateau(self.g_optimizer, mode='min', patience=3, verbose=True)
+        self.g_scheduler = ReduceLROnPlateau(self.g_optimizer, mode='min', patience=3, verbose=True)
 
         self.d_optimizer = optim.Adam(self.d_net.parameters(), lr=lr)
-        #self.d_scheduler = ReduceLROnPlateau(self.d_optimizer, mode='min', patience=3, verbose=True)
+        self.d_scheduler = ReduceLROnPlateau(self.d_optimizer, mode='min', patience=3, verbose=True)
 
         datasets = generate_test_train_dataloader(image_dir, batch_size, num_workers,number_images=number_images)
 
@@ -94,9 +94,9 @@ class GeneratorTraining:
                 for i in range(size):
                     # Get the original image
                     # Plot them side by side
-                    axs[i,0].imshow(plot_original.cpu()[i,:,:,:].float().permute(1,2,0))
-                    axs[i,1].imshow(plot_edited.cpu()[i,:,:,:].float().permute(1,2,0))
-                    axs[i,2].imshow(plot_enhanced_img.cpu()[i,:,:,:].float().permute(1,2,0))
+                    axs[i,0].imshow(plot_original.cpu()[i,:,:,:].detach().float().permute(1,2,0))
+                    axs[i,1].imshow(plot_edited.cpu()[i,:,:,:].detach().float().permute(1,2,0))
+                    axs[i,2].imshow(plot_enhanced_img.cpu()[i,:,:,:].detach().float().permute(1,2,0))
             
                 # Label columns
                 axs[0,0].set_title('original')
@@ -113,8 +113,8 @@ class GeneratorTraining:
                 plt.show()
                 #plt.clf()
                 
-            #self.g_scheduler.step(self.stats['gen_val_loss'][-1])
-            #self.d_scheduler.step(self.stats['dis_val_loss'][-1])
+            self.g_scheduler.step(self.stats['gen_val_loss'][-1])
+            self.d_scheduler.step(self.stats['dis_val_loss'][-1])
 
             # save only the best model
             if self.stats['gen_val_loss'][-1] < self.g_best_loss:

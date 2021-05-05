@@ -2,6 +2,7 @@ import os
 import time
 import csv
 
+import argparse
 import torch
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
@@ -32,7 +33,7 @@ class DiscriminatorTraining:
         # distribute model on multiple gpus
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
-            model = torch.nn.DataParallel(model) # Alex- I believe this is broken. 
+            model = torch.nn.DataParallel(model) 
 
         self.net = model
 
@@ -41,7 +42,7 @@ class DiscriminatorTraining:
         self.criterion = torch.nn.CrossEntropyLoss()
 
         self.optimizer = optim.Adam(self.net.parameters(), lr=lr)
-        self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', patience=3, verbose=True)
+        #self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', patience=3, verbose=True)
 
         datasets = generate_test_train_dataloader(image_dir, batch_size, num_workers,number_images=number_images)
 
@@ -70,7 +71,7 @@ class DiscriminatorTraining:
                     writer.writerow(self.stats.keys())
                     writer.writerows(zip(*self.stats.values()))
 
-            self.scheduler.step(self.stats['val_loss'][-1])
+            #self.scheduler.step(self.stats['val_loss'][-1])
 
             # save only the best model
             if self.stats['val_loss'][-1] < self.best_loss:
@@ -107,7 +108,7 @@ class DiscriminatorTraining:
             img = images.float().to(self.device)
             label = labels.to(self.device)
             step += 1
-            total += img.size()[0]
+            total += img.size()[0] 
 
             # forward pass
             if phase == 'train':
@@ -126,13 +127,13 @@ class DiscriminatorTraining:
                     outputs = self.net(img)
                     loss = self.criterion(outputs, label)
 
-            acc = (torch.max(outputs.data, dim=1).indices == label).sum()/img.size()[0]
+            acc = (torch.max(outputs.data, dim=1).indices == label).sum()
 
             running_acc += acc.item() #* dataloader.batch_size * 2
-            running_loss += loss.item() #* dataloader.batch_size * 2
+            running_loss += loss.item()#* dataloader.batch_size * 2
 
             if step % 100 == 0:
-                print('Current step: {}  Loss: {}  Acc: {}'.format(step, loss, acc))
+                print('Current step: {}  Loss: {}  Acc: {}'.format(step, loss/labels.size()[0], acc/labels.size()[0]))
 
         epoch_loss = running_loss / total
         epoch_acc = running_acc / total
@@ -165,26 +166,52 @@ class DiscriminatorTraining:
 
 
 if __name__ == '__main__':
-    img_dir = os.getcwd()
-    #img_dir = 'D:\\fivek_dataset\\'
-
-    if torch.cuda.is_available():
-        detected_gpus = torch.cuda.device_count()
-        batch_size = 25 * detected_gpus
-        torch.multiprocessing.set_start_method('spawn')
-    else:
-        batch_size = 10
-
-    # Settings
-    num_workers = 2
-    epochs = 100
-    #batch_size = 2
-    no_cuda = False # If True run without cuda
-    number_images = 5000 #(0,5000)
+    parser = argparse.ArgumentParser()
+    # The directory the images are located in.
+    parser.add_argument('--img_dir', type=str, default=os.getcwd())
+    # Number of image pairs per batch .
+    parser.add_argument('--batch_size',type=int, default = None)
+    # Number of workers for retrieving images from the dataset.
+    parser.add_argument('--num_workers',type=int,default = 2)
+    # Number of epochs to train for.
+    parser.add_argument('--epochs',type=int,default = 10000)
+    # Flag to disable CUDA
+    parser.add_argument('--no_cuda',type=bool,default = False)
+    # Number of images to use in train/test/val total.
+    parser.add_argument('--number_images',type=int,default = 5000)
+    # Flag to plot image examples each epoch.
+    parser.add_argument('--plot',type=bool,default = True)
+    # Path so save generative model. 
+    parser.add_argument('--save_path',type = str, default = './')
+    # Load in a previous descriminator
+    parser.add_argument('--load_prev',type = bool, default = False)
+    # The path to the discriminator model.
+    parser.add_argument('--pretrained_discriminator_path', type=str, default='initial_discriminator_model_trained.pth')
+    args = parser.parse_args()
     
-    save_path = './'
+
+
+    # If the batch size is not specified, assign defaults depending on number of GPUs. 
+    if args.batch_size == None:
+        if torch.cuda.is_available():
+            detected_gpus = torch.cuda.device_count()
+            batch_size = 25 * detected_gpus
+            try:
+                torch.multiprocessing.set_start_method('spawn')
+            except:
+                pass
+        else:
+            batch_size = 10
+    else:
+        batch_size = args.batch_size
 
     model = Discriminator()
+    if args.load_prev:
+        state = torch.load(args.pretrained_discriminator_path, map_location=lambda storage, loc: storage)
+        state_dict = {k.replace('module.',''): v for k, v in state["state_dict"].items()}
+        model.load_state_dict(state_dict)
+        print('Loaded previous best model')
+
     # 
-    trainer = DiscriminatorTraining(model, img_dir, batch_size, num_workers,no_cuda = no_cuda,number_images = number_images)
-    trainer.train(epochs, save_path)
+    trainer = DiscriminatorTraining(model, args.img_dir, batch_size, args.num_workers, no_cuda = args.no_cuda,number_images = args.number_images)
+    trainer.train(args.epochs, args.save_path)
