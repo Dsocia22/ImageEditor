@@ -18,11 +18,11 @@ class DiscriminatorTraining:
         self.phases = ['train', 'val', 'test']
 
         # set up device
-        self.device = torch.device("cuda0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(self.device)
         cudnn.benchmark = True
 
-        if self.device == 'cuda0':
+        if self.device == 'cuda:0':
             torch.set_default_tensor_type("torch.cuda.FloatTensor")
         else:
             torch.set_default_tensor_type("torch.FloatTensor")
