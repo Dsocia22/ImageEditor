@@ -16,7 +16,7 @@ class Discriminator(nn.Module):
         self.batch128 = nn.BatchNorm2d(num_features=128)
         self.batch192 = nn.BatchNorm2d(num_features=192)
 
-        self.full = nn.Linear(in_features=107648, out_features=1024)
+        self.full = nn.Linear(in_features=2048, out_features=1024)
         self.out = nn.Linear(in_features=1024, out_features=2)
 
         self.activation = nn.LeakyReLU()

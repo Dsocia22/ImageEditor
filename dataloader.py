@@ -109,7 +109,7 @@ class ImageDataset(Dataset):
         return sample
 
 
-def generate_test_train_dataloader(image_dir, batch_size, num_workers, test_split=0.2, val_split=0.2, img_size=(512, 512),number_images = 5000):
+def generate_test_train_dataloader(image_dir, batch_size, num_workers, test_split=0.2, val_split=0.2, img_size=(100, 100),number_images = 5000):
     # Get splits. Form a series of 0, 1, or 2 indicating which split an original image should belong to.
     test_count = round(number_images * test_split)
     val_count = round(number_images * val_split)

@@ -13,4 +13,5 @@ pyvenv.cfg
 .pyc
 .idea
 .pth
+.png
 pip-selfcheck.json
