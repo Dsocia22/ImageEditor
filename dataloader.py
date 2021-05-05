@@ -88,13 +88,13 @@ class ImageDataset(Dataset):
         # Get the path by index
         edited_image_path = self.img_labels[idx]
         # Read the image by path
-        edited_image = read_image(edited_image_path)
+        edited_image = read_image(edited_image_path)/512
         # Split path, just get image name 
         file_name = os.path.split(edited_image_path)[1]
         # Construct the path to the original image
         original_image_path = os.path.join(self.img_dir,'Original',self.image_format,file_name)
         # Read the original image
-        original_image = read_image(original_image_path)
+        original_image = read_image(original_image_path)/512
         
         if self.transform is not None:
             # Perform the same random transformations on the input and output tensors.

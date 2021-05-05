@@ -86,7 +86,6 @@ class GeneratorTraining:
                     writer.writerow(self.stats.keys())
                     writer.writerows(zip(*self.stats.values()))
                     
-            plot = True
             if plot:
                 plot_enhanced_img = self.g_net(plot_original)[0:3,:]
                 size = plot_enhanced_img.shape[0]
@@ -95,9 +94,9 @@ class GeneratorTraining:
                 for i in range(size):
                     # Get the original image
                     # Plot them side by side
-                    axs[i,0].imshow(plot_original.cpu()[i,:,:,:].int().permute(1,2,0))
-                    axs[i,1].imshow(plot_edited.cpu()[i,:,:,:].int().permute(1,2,0))
-                    axs[i,2].imshow(plot_enhanced_img.cpu()[i,:,:,:].int().permute(1,2,0))
+                    axs[i,0].imshow(plot_original.cpu()[i,:,:,:].float().permute(1,2,0))
+                    axs[i,1].imshow(plot_edited.cpu()[i,:,:,:].float().permute(1,2,0))
+                    axs[i,2].imshow(plot_enhanced_img.cpu()[i,:,:,:].float().permute(1,2,0))
             
                 # Label columns
                 axs[0,0].set_title('original')
