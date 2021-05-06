@@ -19,7 +19,7 @@ from torchvision.io import read_image
 import glob
 
 class ImageDataset(Dataset):
-    def __init__(self, img_dir,split = None, image_format = 'JPG', transform=None):
+    def __init__(self, img_dir, split=None, retain = None, image_format='JPG', transform=None):
         '''
         Initialize the image dataset. 
 
@@ -28,7 +28,9 @@ class ImageDataset(Dataset):
         img_dir : string
             The root directory of the data folder.
         split : pandas series
-            Which indicies to include. Used in train/test split.
+            A series that indicates which indices belong to each split
+        retain: int
+            Which values of split should stay in this dataset.
         image_format : string, optional
             The image format, used to point the dataset constructor at the correct folder. The default is 'JPEG'.
         transform : function, optional
@@ -39,14 +41,19 @@ class ImageDataset(Dataset):
         None.
 
         '''
-        # Pattern to detect which file names match the desired format. 
-        glob_pattern = 'Expert *\\'+image_format.upper()+'\\*.'+image_format.lower()
+        # Pattern to detect which file names match the desired format.
+        label_list = []
+        for expert in ['A','B','C','D','E']:
+            glob_pattern = 'Expert '+expert+'/'+image_format.upper()+'/*.'+image_format.lower()
+            # Get a series of file names matching the glob format.
+            img_label_expert = pd.Series(glob.glob(os.path.join(img_dir,glob_pattern)))
+            # If the dataset has some data held out, retain values where series split == True. Reset index. 
+            if split is not None:
+                img_label_expert = img_label_expert[0:len(split)][split == retain].reset_index(drop = True)
+            label_list.append(img_label_expert)
+        
+        self.img_labels = list(pd.concat(label_list))
         self.img_dir = img_dir
-        # Get a series of file names matching the glob format.
-        self.img_labels = pd.Series(glob.glob(os.path.join(img_dir,glob_pattern)))
-        # If the dataset has some data held out, retain values where series split == True. Reset index. 
-        if split is not None:
-            self.img_labels = self.img_labels[split].reset_index(drop = True)
         # Note the image format, png, jpeg, ect..
         self.image_format = image_format
         # Action to transform both the input and output tensors. 
@@ -81,13 +88,13 @@ class ImageDataset(Dataset):
         # Get the path by index
         edited_image_path = self.img_labels[idx]
         # Read the image by path
-        edited_image = read_image(edited_image_path)
+        edited_image = read_image(edited_image_path)/255
         # Split path, just get image name 
         file_name = os.path.split(edited_image_path)[1]
         # Construct the path to the original image
         original_image_path = os.path.join(self.img_dir,'Original',self.image_format,file_name)
         # Read the original image
-        original_image = read_image(original_image_path)
+        original_image = read_image(original_image_path)/255
         
         if self.transform is not None:
             # Perform the same random transformations on the input and output tensors.
@@ -100,6 +107,28 @@ class ImageDataset(Dataset):
             
         sample = {"original_image": original_image, "edited_image": edited_image}
         return sample
+
+
+def generate_test_train_dataloader(image_dir, batch_size, num_workers, test_split=0.2, val_split=0.2, img_size=(100, 100),number_images = 5000):
+    # Get splits. Form a series of 0, 1, or 2 indicating which split an original image should belong to.
+    test_count = round(number_images * test_split)
+    val_count = round(number_images * val_split)
+    train_count = number_images - test_count - val_count
+    # 0 = training data, 1 = validation data, 2 = testing data
+    splits = pd.Series([0] * train_count + [1] * val_count + [2] * test_count).sample(frac=1).reset_index(drop=True)
+
+    # Create dataloaders
+    train_dataset = ImageDataset(image_dir, split=splits, retain = 0, transform=RandomCrop(img_size))
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+
+    val_dataset = ImageDataset(image_dir, split=splits, retain = 1, transform=RandomCrop(img_size))
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+
+    test_dataset = ImageDataset(image_dir, split=splits, retain = 2, transform=RandomCrop(img_size))
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+
+
+    return train_dataloader, val_dataloader, test_dataloader
     
 def perform_tests_dataset(dataset,expected_len = None, idx_to_get = 0):
     '''
@@ -180,32 +209,35 @@ def perform_tests_dataloader(dataloader,plot = True):
             
         plt.subplots_adjust(wspace=0.1, hspace=0.1)
         plt.show()
-        
-        
+
 
 if __name__ == '__main__':
-    img_size = [512,512]
-    # Create a dataset with all objects. Expect 25,000 entries a priori.
+    img_size = [512, 512]
+    # Create a dataset with all objects.
+    n_files = 25000 # Expect 25,000 entries a priori.
+    n_experts = 5 # Expect 5 experts a priori
     dataset = ImageDataset('D:\\fivek_dataset',transform = RandomCrop(img_size))
-    perform_tests_dataset(dataset,25000)
+    perform_tests_dataset(dataset, 5000 * n_experts)
     dataloader = DataLoader(dataset, batch_size = 3, shuffle=True)
     perform_tests_dataloader(dataloader)
     
     # Get 80/20 test train splits. Form a series of True/False indicating if the value should be retained. 
-    train_count = round(len(dataset) * 0.8)
-    test_count = len(dataset) - train_count
-    train_split = pd.Series([True]*train_count +[False]*test_count).sample(frac = 1).reset_index(drop = True)
-    test_split = ~train_split
+    train_count = round((n_files/n_experts)* 0.8)
+    test_count =  round((n_files/n_experts)* 0.2)
+    split = pd.Series([0]*train_count +[1]*test_count).sample(frac = 1).reset_index(drop = True)
+
     
+
+
     # Form a train dataset and a train dataloader. Test both.
-    train_dataset = ImageDataset('D:\\fivek_dataset',split = train_split, transform = RandomCrop(img_size))
-    perform_tests_dataset(train_dataset,train_count)
+    train_dataset = ImageDataset('D:\\fivek_dataset',split = split, retain = 0, transform = RandomCrop(img_size))
+    perform_tests_dataset(train_dataset,train_count * n_experts)
     train_dataloader = DataLoader(train_dataset, batch_size = 3, shuffle=True)
     perform_tests_dataloader(train_dataloader, plot = False)
     
     # Form a test dataset and a test dataloader. Test both.
-    test_dataset = ImageDataset('D:\\fivek_dataset',split = test_split, transform = RandomCrop(img_size))
-    perform_tests_dataset(test_dataset,test_count)
+    test_dataset = ImageDataset('D:\\fivek_dataset',split = split, retain = 1, transform = RandomCrop(img_size))
+    perform_tests_dataset(test_dataset,test_count* n_experts)
     test_dataloader = DataLoader(test_dataset, batch_size = 3, shuffle=True)
     perform_tests_dataloader(test_dataloader, plot = False)
     
