@@ -83,7 +83,7 @@ class ImageDataset(Dataset):
         -------
         sample : TYPE
             DESCRIPTION.
-
+f
         '''
         original_image, edited_image = self.get_images(idx)
         
