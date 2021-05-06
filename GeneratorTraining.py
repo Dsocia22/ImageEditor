@@ -68,7 +68,8 @@ class GeneratorTraining:
         csv_save_path = os.path.join(save_path, 'gan_model_trained_stats.csv')
         
         # plotting images
-        plot_imgs = next(iter(self.dataloader['train']))
+        # plot_imgs = next(iter(self.dataloader['train']))
+        plot_imgs = self.dataloader['val'].get_image(0)
         plot_original = plot_imgs['original_image'][0:3,:].float().to(self.device)
         plot_edited = plot_imgs['edited_image'][0:3,:].float().to(self.device)
         
@@ -89,7 +90,7 @@ class GeneratorTraining:
             if plot:
                 plot_enhanced_img = self.g_net(plot_original)[0:3,:]
                 size = plot_enhanced_img.shape[0]
-                fig, axs = plt.subplots(size, 3,figsize = (10,10))
+                fig, axs = plt.subplots(size, 3, figsize=(10,10))
                 # Iterate through each datapoint
                 for i in range(size):
                     # Get the original image
