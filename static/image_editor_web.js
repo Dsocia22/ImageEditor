@@ -22,14 +22,48 @@ window.onload = () => {
 					// alert("hello"); // if it's failing on actual server check your server FIREWALL + SET UP CORS
 					bytestring = data['status']
 					image = bytestring.split('\'')[1]
-					imagebox.attr('src' , 'data:image/jpeg;base64,'+image)
+					returnimagebox = $('#returnimagebox')
+					returnimagebox.attr('src' , 'data:image/jpeg;base64,'+image)
+					returnimagebox.height(window.height/2);
+			        returnimagebox.width(window.width/2);
+
+			        // plot histograms
+			        hist_orig = data['hist_orig']
+			        hist_edit = data['hist_edit']
+
+			        toHist(hist_orig[0], hist_edit[0], 'red', 'rHist')
+                    toHist(hist_orig[1], hist_edit[1], 'green', 'gHist')
+                    toHist(hist_orig[2], hist_edit[2], 'blue', 'bHist')
 				}
 			});
 		}
 	});
 };
 
+function toHist(data1, data2, color, spot){
+    var original = {
+      x: data1,
+      name: 'Original',
+      type: "histogram",
+      opacity: 0.25,
+      marker: {
+         color: color,
+      },
+    };
+    var edited = {
+      x: data2,
+      name: "Edited",
+      type: "histogram",
+      opacity: 0.75,
+      marker: {
+         color: color,
+      },
+    };
 
+    var data = [original, edited];
+    var layout = {barmode: "overlay"};
+    Plotly.newPlot(spot, data, layout);
+}
 
 function readUrl(input){
 	imagebox = $('#imagebox')
@@ -40,8 +74,8 @@ function readUrl(input){
 			// console.log(e)
 
 			imagebox.attr('src',e.target.result);
-			//imagebox.height(500);
-			//imagebox.width(500);
+			imagebox.height(window.height/2);
+			imagebox.width(window.width/2);
 		}
 		reader.readAsDataURL(input.files[0]);
 	}
