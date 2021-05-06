@@ -70,8 +70,8 @@ class GeneratorTraining:
         # plotting images
         # plot_imgs = next(iter(self.dataloader['train']))
         plot_imgs = self.dataloader['val'].get_image(0)
-        plot_original = plot_imgs['original_image'][0:3,:].float().to(self.device)
-        plot_edited = plot_imgs['edited_image'][0:3,:].float().to(self.device)
+        plot_original = plot_imgs[0][0:3,:].float().to(self.device)
+        plot_edited = plot_imgs[1][0:3,:].float().to(self.device)
         
         for epoch in range(epochs):
             start = time.strftime("%H:%M:%S")
