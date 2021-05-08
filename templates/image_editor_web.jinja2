@@ -11,17 +11,21 @@
 </head>
 <body>
 
-<div class="box">
-
-	<input id="imageinput" type="file" name="image" onchange="readUrl(this)">
+<div style="width: 100%; overflow: hidden;">
+    <input id="imageinput" type="file" name="image" onchange="readUrl(this)">
 	<button name="send" id = "sendbutton">Send</button>
 	<hr>
-	<img id="imagebox" src="">
-	<img id="returnimagebox" src="">
+    <div style="width: 600px; float: left;">
+        <img id="imagebox" src="">
+        <img id="returnimagebox" src="">
 
-	<div id='rHist'></div>
-	<div id='bHist'></div>
-	<div id='gHist'></div>
+    </div>
+
+    <div style="margin-left: 620px;">
+        <div id='rHist'></div>
+        <div id='bHist'></div>
+        <div id='gHist'></div>
+    </div>
 
 </div>
 

@@ -16,29 +16,15 @@ def edit_image():
     file = request.files['image'].read()  ## byte file
     npimg = np.frombuffer(file, np.uint8)
     img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
-    ######### Do preprocessing here ################
+
     # color histogram of unedited
     hist_orig = (img[0].flatten().tolist(), img[1].flatten().tolist(), img[2].flatten().tolist())
 
+    # image processing
     img[img > 150] = 0
-
-    # color histogram of edited
-    r_edit = cv2.calcHist([img], [0], None, [256], [0,256])
-    g_edit = cv2.calcHist([img], [1], None, [256], [0,256])
-    b_edit = cv2.calcHist([img], [2], None, [256], [0,256])
 
     hist_edit = (img[0].flatten().tolist(), img[1].flatten().tolist(), img[2].flatten().tolist())
 
-    # fig, ax = plt.subplots(1, 2)
-    # ax[0].plot(r_orig)
-    # ax[1].plot(r_edit)
-    # ax[0].plot(g_orig)
-    # ax[1].plot(g_edit)
-    # ax[0].plot(b_orig)
-    # ax[1].plot(b_edit)
-    # plt.show()
-    ## any random stuff do here
-    ################################################
     img = Image.fromarray(img.astype("uint8"))
     rawBytes = io.BytesIO()
     img.save(rawBytes, "JPEG")

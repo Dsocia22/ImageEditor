@@ -24,8 +24,8 @@ window.onload = () => {
 					image = bytestring.split('\'')[1]
 					returnimagebox = $('#returnimagebox')
 					returnimagebox.attr('src' , 'data:image/jpeg;base64,'+image)
-					returnimagebox.height(window.height/2);
-			        returnimagebox.width(window.width/2);
+					returnimagebox.height(window.height/3);
+			        returnimagebox.width(window.width/3);
 
 			        // plot histograms
 			        hist_orig = data['hist_orig']
@@ -74,11 +74,9 @@ function readUrl(input){
 			// console.log(e)
 
 			imagebox.attr('src',e.target.result);
-			imagebox.height(window.height/2);
-			imagebox.width(window.width/2);
+			imagebox.height(window.height/3);
+			imagebox.width(window.width/3);
 		}
 		reader.readAsDataURL(input.files[0]);
 	}
-
-
 }
