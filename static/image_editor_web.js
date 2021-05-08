@@ -24,16 +24,17 @@ window.onload = () => {
 					image = bytestring.split('\'')[1]
 					returnimagebox = $('#returnimagebox')
 					returnimagebox.attr('src' , 'data:image/jpeg;base64,'+image)
-					returnimagebox.height(window.height/3);
+					returnimagebox.height('340px');
 			        returnimagebox.width(window.width/3);
 
 			        // plot histograms
 			        hist_orig = data['hist_orig']
 			        hist_edit = data['hist_edit']
 
-			        toHist(hist_orig[0], hist_edit[0], 'red', 'rHist')
-                    toHist(hist_orig[1], hist_edit[1], 'green', 'gHist')
-                    toHist(hist_orig[2], hist_edit[2], 'blue', 'bHist')
+                    toHist(hist_orig[0], hist_edit[0], 'black', 'hist')
+			        toHist(hist_orig[1], hist_edit[1], 'red', 'rHist')
+                    toHist(hist_orig[2], hist_edit[2], 'green', 'gHist')
+                    toHist(hist_orig[3], hist_edit[3], 'blue', 'bHist')
 				}
 			});
 		}
@@ -49,6 +50,12 @@ function toHist(data1, data2, color, spot){
       marker: {
          color: color,
       },
+      xbins: {
+        end: 256,
+        size: 1,
+        start: 0
+
+      }
     };
     var edited = {
       x: data2,
@@ -58,11 +65,30 @@ function toHist(data1, data2, color, spot){
       marker: {
          color: color,
       },
+      xbins: {
+        end: 256,
+        size: 1,
+        start: 0
+
+      }
     };
 
     var data = [original, edited];
-    var layout = {barmode: "overlay"};
-    Plotly.newPlot(spot, data, layout);
+    var layout = {barmode: "overlay",
+                  height: 170,
+                  //width: 400,
+                  margin: {
+                        l: 10,
+                        r: 30,
+                        b: 30,
+                        t: 30,
+                        pad: 1
+                  },
+                  yaxis: {
+                  showticklabels: false
+                  }
+  };
+    Plotly.newPlot(spot, data, layout, {staticPlot: true, displayModeBar: true});
 }
 
 function readUrl(input){
@@ -74,7 +100,7 @@ function readUrl(input){
 			// console.log(e)
 
 			imagebox.attr('src',e.target.result);
-			imagebox.height(window.height/3);
+			imagebox.height('340px');
 			imagebox.width(window.width/3);
 		}
 		reader.readAsDataURL(input.files[0]);

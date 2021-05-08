@@ -18,12 +18,12 @@ def edit_image():
     img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
     # color histogram of unedited
-    hist_orig = (img[0].flatten().tolist(), img[1].flatten().tolist(), img[2].flatten().tolist())
+    hist_orig = (img.flatten().tolist(), img[0].flatten().tolist(), img[1].flatten().tolist(), img[2].flatten().tolist())
 
     # image processing
-    img[img > 150] = 0
+    img += 1
 
-    hist_edit = (img[0].flatten().tolist(), img[1].flatten().tolist(), img[2].flatten().tolist())
+    hist_edit = (img.flatten().tolist(), img[0].flatten().tolist(), img[1].flatten().tolist(), img[2].flatten().tolist())
 
     img = Image.fromarray(img.astype("uint8"))
     rawBytes = io.BytesIO()
