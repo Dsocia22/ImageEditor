@@ -28,7 +28,7 @@ app = Flask(__name__)
 def edit_image():
     print(request.files , file=sys.stderr)
     file = request.files['image'].read()  ## byte file
-    img = np.array(Image.open(io.BytesIO(file)))[:, :, :3]
+    image = np.array(Image.open(io.BytesIO(file)))[:, :, :3]
     
     # convert from numpy to torch
     image = torch.from_numpy(image).permute(2, 0, 1)[None, :, :, :].to(device).float() / 255
@@ -45,6 +45,8 @@ def edit_image():
 
     image = torch.nn.functional.interpolate(image, dim)
 
+    img = image.cpu().detach().numpy()[0, :, :, :] * 255
+
     # color histogram of unedited
     hist_orig = (img.flatten().tolist(), img[0].flatten().tolist(), img[1].flatten().tolist(), img[2].flatten().tolist())
 
@@ -52,11 +54,11 @@ def edit_image():
     
     image = gen.forward(image)
     image = image.permute(0, 2, 3, 1)
-    image = image.cpu().detach().numpy()[0, :, :, :]
+    image = image.cpu().detach().numpy()[0, :, :, :] * 255
 
-    hist_edit = (img.flatten().tolist(), img[0].flatten().tolist(), img[1].flatten().tolist(), img[2].flatten().tolist())
+    hist_edit = (image.flatten().tolist(), image[0].flatten().tolist(), image[1].flatten().tolist(), image[2].flatten().tolist())
 
-    img = Image.fromarray(img.astype("uint8"))
+    img = Image.fromarray(image.astype("uint8"))
     rawBytes = io.BytesIO()
     img.save(rawBytes, "JPEG")
     rawBytes.seek(0)
