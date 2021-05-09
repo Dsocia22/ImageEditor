@@ -2,10 +2,24 @@ from flask import Flask, render_template, request, jsonify
 from PIL import Image
 import os, io, sys
 import numpy as np
-import cv2
+import torch
 import base64
 
 import matplotlib.pyplot as plt
+
+import GAN
+
+
+# load model
+path = r'./gan_model_trained.pth7'
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+gen = GAN.Generator().to(device)
+state = torch.load(path, map_location=lambda storage, loc: storage)
+state_dict = {k[7:]: v for k, v in state["generator_state_dict"].items()}
+gen.load_state_dict(state_dict)
+
 
 app = Flask(__name__)
 
@@ -14,14 +28,31 @@ app = Flask(__name__)
 def edit_image():
     print(request.files , file=sys.stderr)
     file = request.files['image'].read()  ## byte file
-    npimg = np.frombuffer(file, np.uint8)
-    img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+    img = np.array(Image.open(io.BytesIO(file)))[:, :, :3]
+    
+    # convert from numpy to torch
+    image = torch.from_numpy(image).permute(2, 0, 1)[None, :, :, :].to(device).float() / 255
+    
+    # downsample image
+    (h, w) = image.shape[2:]
+    size = 512
+    if h >= w:
+        r = size / float(h)
+        dim = (size, int(w * r))
+    else:
+        r = size / float(w)
+        dim = (int(h * r), size)
+
+    image = torch.nn.functional.interpolate(image, dim)
 
     # color histogram of unedited
     hist_orig = (img.flatten().tolist(), img[0].flatten().tolist(), img[1].flatten().tolist(), img[2].flatten().tolist())
 
     # image processing
-    img += 1
+    
+    image = gen.forward(image)
+    image = image.permute(0, 2, 3, 1)
+    image = image.cpu().detach().numpy()[0, :, :, :]
 
     hist_edit = (img.flatten().tolist(), img[0].flatten().tolist(), img[1].flatten().tolist(), img[2].flatten().tolist())
 
@@ -54,4 +85,4 @@ def after_request(response):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True) #, port='5000', host='0.0.0.0')
