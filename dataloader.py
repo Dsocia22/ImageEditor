@@ -85,16 +85,7 @@ class ImageDataset(Dataset):
             DESCRIPTION.
 
         '''
-        # Get the path by index
-        edited_image_path = self.img_labels[idx]
-        # Read the image by path
-        edited_image = read_image(edited_image_path)/255
-        # Split path, just get image name 
-        file_name = os.path.split(edited_image_path)[1]
-        # Construct the path to the original image
-        original_image_path = os.path.join(self.img_dir,'Original',self.image_format,file_name)
-        # Read the original image
-        original_image = read_image(original_image_path)/255
+        original_image, edited_image = self.get_images(idx)
         
         if self.transform is not None:
             # Perform the same random transformations on the input and output tensors.
@@ -104,9 +95,23 @@ class ImageDataset(Dataset):
             original_image = self.transform(original_image)
             torch.manual_seed(seed)
             edited_image = self.transform(edited_image)
-            
+
         sample = {"original_image": original_image, "edited_image": edited_image}
         return sample
+
+    def get_images(self, idx):
+        # Get the path by index
+        edited_image_path = self.img_labels[idx]
+        # Read the image by path
+        edited_image = read_image(edited_image_path) / 255
+        # Split path, just get image name
+        file_name = os.path.split(edited_image_path)[1]
+        # Construct the path to the original image
+        original_image_path = os.path.join(self.img_dir, 'Original', self.image_format, file_name)
+        # Read the original image
+        original_image = read_image(original_image_path) / 255
+
+        return original_image, edited_image
 
 
 def generate_test_train_dataloader(image_dir, batch_size, num_workers, test_split=0.2, val_split=0.2, img_size=(100, 100),number_images = 5000):
