@@ -42,7 +42,7 @@ class DiscriminatorTraining:
         self.criterion = torch.nn.CrossEntropyLoss()
 
         self.optimizer = optim.Adam(self.net.parameters(), lr=lr)
-        #self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', patience=3, verbose=True)
+        self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', patience=3, verbose=True)
 
         datasets = generate_test_train_dataloader(image_dir, batch_size, num_workers,number_images=number_images)
 
@@ -71,7 +71,7 @@ class DiscriminatorTraining:
                     writer.writerow(self.stats.keys())
                     writer.writerows(zip(*self.stats.values()))
 
-            #self.scheduler.step(self.stats['val_loss'][-1])
+            self.scheduler.step(self.stats['val_loss'][-1])
 
             # save only the best model
             if self.stats['val_loss'][-1] < self.best_loss:

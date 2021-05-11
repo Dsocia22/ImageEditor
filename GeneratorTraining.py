@@ -2,21 +2,25 @@ import os
 import time
 import csv
 
+
 import argparse
+import pandas as pd
 import torch
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torchvision.transforms import CenterCrop
+import glob
 
-from dataloader import generate_test_train_dataloader
+from dataloader import ImageDataset, DataLoader, generate_test_train_dataloader
 from GAN import Discriminator, Generator, Loss
 
 
 class GeneratorTraining:
 
-    def __init__(self, generator_model, discriminator_model, image_dir, batch_size, num_workers, lr=5e-4,no_cuda = False, number_images = 5000):
+    def __init__(self, generator_model, discriminator_model, image_dir, batch_size, num_workers, lr=5e-4,no_cuda = False, number_images = 5000, start_epoch = 0,stats = None):
         self.phases = ['train', 'val', 'test']
 
         # set up device
@@ -55,9 +59,18 @@ class GeneratorTraining:
         datasets = generate_test_train_dataloader(image_dir, batch_size, num_workers,number_images=number_images)
 
         self.dataloader = {phase: data for phase, data in zip(self.phases, datasets)}
-
-        self.stats = {'gen_train_loss': [], 'gen_val_loss': [], 'dis_train_acc': [], 'dis_val_acc': [], 'dis_train_loss': [], 'dis_val_loss': []}
-
+        
+        dataset = ImageDataset(image_dir,split = pd.Series([1]*10+[0]*((number_images*5)-10)),retain = 1)
+        example_images = [dataset.__getitem__(0),dataset.__getitem__(1),dataset.__getitem__(2)]
+        crop =  CenterCrop((512,512))
+        self.example_original = torch.stack([crop(img['original_image'].float().to(self.device)) for img in example_images])
+        self.example_edited = torch.stack([crop(img['edited_image'].float().to(self.device)) for img in example_images])
+        
+        if stats == None:
+            self.stats = {'gen_train_loss': [], 'gen_val_loss': [], 'dis_train_acc': [], 'dis_val_acc': [], 'dis_train_loss': [], 'dis_val_loss': []}
+        else:
+            self.stats = stats
+        
         self.g_best_loss = float('inf')
         self.d_best_loss = float('inf')
 
@@ -68,13 +81,14 @@ class GeneratorTraining:
         csv_save_path = os.path.join(save_path, 'gan_model_trained_stats.csv')
         
         # plotting images
-        plot_imgs = next(iter(self.dataloader['train']))
-        plot_original = plot_imgs['original_image'][0:3,:].float().to(self.device)
-        plot_edited = plot_imgs['edited_image'][0:3,:].float().to(self.device)
+        #plot_imgs = next(iter(self.example_dataloader))
+        #plot_original = plot_imgs['original_image'][0:3,:].float().to(self.device)
+        #plot_edited = plot_imgs['edited_image'][0:3,:].float().to(self.device)
         
-        for epoch in range(epochs):
+        
+        for epoch in epochs:
             start = time.strftime("%H:%M:%S")
-            print('Epoch {}/{} | Start Time: {}'.format(epoch, epochs - 1, start))
+            print('Epoch {}/{} | Start Time: {}'.format(epoch, max(epochs), start))
             print('-' * 10)
             for phase in self.phases[:2]:
                 print('Starting phase: %s' % phase)
@@ -87,15 +101,15 @@ class GeneratorTraining:
                     writer.writerows(zip(*self.stats.values()))
                     
             if plot:
-                plot_enhanced_img = self.g_net(plot_original)[0:3,:]
+                plot_enhanced_img = self.g_net(self.example_original)
                 size = plot_enhanced_img.shape[0]
                 fig, axs = plt.subplots(size, 3,figsize = (10,10))
                 # Iterate through each datapoint
                 for i in range(size):
                     # Get the original image
                     # Plot them side by side
-                    axs[i,0].imshow(plot_original.cpu()[i,:,:,:].detach().float().permute(1,2,0))
-                    axs[i,1].imshow(plot_edited.cpu()[i,:,:,:].detach().float().permute(1,2,0))
+                    axs[i,0].imshow(self.example_original.cpu()[i,:,:,:].detach().float().permute(1,2,0))
+                    axs[i,1].imshow(self.example_edited.cpu()[i,:,:,:].detach().float().permute(1,2,0))
                     axs[i,2].imshow(plot_enhanced_img.cpu()[i,:,:,:].detach().float().permute(1,2,0))
             
                 # Label columns
@@ -107,29 +121,30 @@ class GeneratorTraining:
                 for ax in fig.get_axes():
                     ax.set_xticks([])
                     ax.set_yticks([])
-                    
+                plt.suptitle('Epoch: ' + str(epoch))
                 plt.subplots_adjust(wspace=0.1, hspace=0.1)
                 plt.savefig('figs/epoch_'+str(epoch)+'.png')
-                plt.show()
-                #plt.clf()
+                #plt.show()
+                plt.clf()
                 
             self.g_scheduler.step(self.stats['gen_val_loss'][-1])
             self.d_scheduler.step(self.stats['dis_val_loss'][-1])
 
             # save only the best model
+            state = {
+                "epoch": epoch,
+                "best_gen_loss": self.g_best_loss,
+                "generator_state_dict": self.g_net.state_dict(),
+                "generator_optimizer": self.g_optimizer.state_dict(),
+                "discriminator_state_dict": self.d_net.state_dict(),
+                "discriminator_optimizer": self.d_optimizer.state_dict(),
+            }
             if self.stats['gen_val_loss'][-1] < self.g_best_loss:
-                state = {
-                    "epoch": epoch,
-                    "best_gen_loss": self.g_best_loss,
-                    "generator_state_dict": self.g_net.state_dict(),
-                    "generator_optimizer": self.g_optimizer.state_dict(),
-                    "discriminator_state_dict": self.d_net.state_dict(),
-                    "discriminator_optimizer": self.d_optimizer.state_dict(),
-                }
-
-                print("******** New optimal found, saving state ********")
-                state["best_gen_loss"] = self.gen_best_loss = self.stats['gen_val_loss'][-1]
-                torch.save(state, model_save_path)
+                print("******** New optimal found, ********")
+            else:
+                print('Generator did not improve this epoch.')
+            state["best_gen_loss"] = self.gen_best_loss = self.stats['gen_val_loss'][-1]
+            torch.save(state, model_save_path + str(epoch))
 
         self.run_epoch('test')
 
@@ -264,7 +279,8 @@ if __name__ == '__main__':
     parser.add_argument('--plot',type=bool,default = True)
     # Path so save generative model. 
     parser.add_argument('--gen_save_path',type = str, default = './')
-    
+    # Option to reload file 
+    parser.add_argument('--load_last', type=bool, default = False)
     args = parser.parse_args()
     
     # If the batch size is not specified, assign defaults depending on number of GPUs. 
@@ -272,23 +288,45 @@ if __name__ == '__main__':
         if torch.cuda.is_available():
             detected_gpus = torch.cuda.device_count()
             batch_size = 25 * detected_gpus
-            try:
-                torch.multiprocessing.set_start_method('spawn')
-            except:
-                pass
         else:
             batch_size = 10
     else:
         batch_size = args.batch_size
+        
+    try:
+        torch.multiprocessing.set_start_method('spawn')
+    except:
+        pass
 
     # Load the discriminator model
     discriminator_model = Discriminator()
     state = torch.load(args.pretrained_discriminator_path, map_location=lambda storage, loc: storage)
     state_dict = {k.replace('module.',''): v for k, v in state["state_dict"].items()}
     discriminator_model.load_state_dict(state_dict)
+    start_epoch = 0
+    stats = None
 
     # Declare the generative model. 
     generator_model = Generator()
+    if args.load_last:
+        
+                
+            gen_path = glob.glob('gan_model_trained.pth*')[-1]
+            state = torch.load(gen_path, map_location=lambda storage, loc: storage)
+            state_dict = {k.replace('module.',''): v for k, v in state["generator_state_dict"].items()}
+            generator_model.load_state_dict(state_dict)
+            
+            state_dict = {k.replace('module.',''): v for k, v in state["discriminator_state_dict"].items()}
+            discriminator_model.load_state_dict(state_dict)
+        
+                    
+            stats = pd.read_csv('gan_model_trained_stats.csv')
+            start_epoch = max(list(stats.index))
+            stats = stats.to_dict(orient='list')
 
-    trainer = GeneratorTraining(generator_model, discriminator_model, args.img_dir, batch_size, args.num_workers, no_cuda = args.no_cuda, number_images =args.number_images)
-    trainer.train(args.epochs, args.gen_save_path, args.plot)
+
+
+
+    trainer = GeneratorTraining(generator_model, discriminator_model, args.img_dir, batch_size, args.num_workers, no_cuda = args.no_cuda, number_images =args.number_images,start_epoch = start_epoch, stats = stats)
+    epochs = range(start_epoch,args.epochs)
+    trainer.train(epochs, args.gen_save_path, args.plot)
