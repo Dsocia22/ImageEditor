@@ -56,7 +56,7 @@ def edit_image():
     image = image.permute(0, 2, 3, 1)
     image = image.cpu().detach().numpy()[0, :, :, :] * 255
 
-    hist_edit = (image.flatten().tolist(), image[0].flatten().tolist(), image[1].flatten().tolist(), image[2].flatten().tolist())
+    hist_edit = (image.flatten().tolist(), image[:, :, 0].flatten().tolist(), image[:, :, 1].flatten().tolist(), image[:, :, 2].flatten().tolist())
 
     img = Image.fromarray(image.astype("uint8"))
     rawBytes = io.BytesIO()
