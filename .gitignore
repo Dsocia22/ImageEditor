@@ -15,4 +15,5 @@ pyvenv.cfg
 *.pth
 *.png
 *.out
+gan_model_trained.pth*
 pip-selfcheck.json
