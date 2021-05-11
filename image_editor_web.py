@@ -29,7 +29,9 @@ def edit_image():
     print(request.files , file=sys.stderr)
     file = request.files['image'].read()  ## byte file
     image = np.array(Image.open(io.BytesIO(file)))[:, :, :3]
-    
+    # image = image[:, :, ::-1].copy()
+    # plt.imshow(image)
+    # plt.show()
     # convert from numpy to torch
     image = torch.from_numpy(image).permute(2, 0, 1)[None, :, :, :].to(device).float() / 255
     
