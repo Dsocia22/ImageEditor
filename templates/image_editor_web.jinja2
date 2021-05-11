@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Image Editor</title>
+	<script
+			  src="https://code.jquery.com/jquery-3.3.1.min.js"
+			  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+			  crossorigin="anonymous"></script>
+	<script type="text/javascript" src="../static/image_editor_web.js"></script>
+	<script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+</head>
+<body>
+
+<div style="width: 100%; overflow: hidden;">
+    <input id="imageinput" type="file" name="image" onchange="readUrl(this)">
+	<button name="send" id = "sendbutton">Send</button>
+	<hr>
+    <div style="width: 800px; float: left; height: 680px">
+        <img id="imagebox" src="">
+        <img id="returnimagebox" src="">
+
+    </div>
+
+    <div style="margin-left: 620px;">
+        <div id='hist'></div>
+        <div id='rHist'></div>
+        <div id='bHist'></div>
+        <div id='gHist'0></div>
+    </div>
+
+</div>
+
+</body>
+</html>

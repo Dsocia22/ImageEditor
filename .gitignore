@@ -10,11 +10,9 @@
 [Ss]cripts
 pyvenv.cfg
 .venv
-*.pyc
 .idea
-*.pth
-*.png
-*.out
-gan_model_trained.pth*
+*.pth*
 pip-selfcheck.json
-DataAnalysis.py
+*.png
+*.pyc
+*.out
