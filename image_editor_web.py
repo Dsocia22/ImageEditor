@@ -8,12 +8,11 @@ import base64
 import matplotlib.pyplot as plt
 
 import GAN
-
-
 # load model
-path = r'./gan_model_trained.pth7'
+path = r'./gan_model_trained.pth15'
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device('cpu')
 
 gen = GAN.Generator().to(device)
 state = torch.load(path, map_location=lambda storage, loc: storage)
@@ -33,9 +32,9 @@ def edit_image():
     # convert from numpy to torch
     image = torch.from_numpy(image).permute(2, 0, 1)[None, :, :, :].to(device).float() / 255
     
-    # downsample image
+        # downsample image
     (h, w) = image.shape[2:]
-    size = 512
+    size = 756
     if h >= w:
         r = size / float(h)
         dim = (size, int(w * r))
@@ -87,4 +86,4 @@ def after_request(response):
 
 
 if __name__ == '__main__':
-    app.run(debug=True) #, port='5000', host='0.0.0.0')
+    app.run(debug=True, port='5000', host='0.0.0.0')
