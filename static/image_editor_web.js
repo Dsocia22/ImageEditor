@@ -55,7 +55,8 @@ function toHist(data1, data2, color, spot){
         size: 1,
         start: 0
 
-      }
+      },
+        xaxis: {range: [0, 256]},
     };
     var edited = {
       x: data2,
@@ -70,7 +71,8 @@ function toHist(data1, data2, color, spot){
         size: 1,
         start: 0
 
-      }
+      },
+        xaxis: {range: [0, 256]},
     };
 
     var data = [original, edited];
