@@ -29,8 +29,8 @@ def edit_image():
     file = request.files['image'].read()  ## byte file
     image = np.array(Image.open(io.BytesIO(file)))[:, :, :3]
     # image = image[:, :, ::-1].copy()
-    # plt.imshow(image)
-    # plt.show()
+    #plt.imshow(image)
+    #plt.show()
     # convert from numpy to torch
     image = torch.from_numpy(image).permute(2, 0, 1)[None, :, :, :].to(device).float() / 255
     
@@ -56,6 +56,10 @@ def edit_image():
     image = gen.forward(image)
     image = image.permute(0, 2, 3, 1)
     image = image.cpu().detach().numpy()[0, :, :, :] * 255
+    mask = image < 0
+    image[mask] = 0
+    mask = image > 255
+    image[mask] = 255
 
     hist_edit = (image.flatten().tolist(), image[:, :, 0].flatten().tolist(), image[:, :, 1].flatten().tolist(), image[:, :, 2].flatten().tolist())
 
