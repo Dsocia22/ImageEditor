@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 import GAN
 # load model
-path = r'./gan_model_trained.pth15'
+path = r'./gan_model_trained.pth26'
 
 #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = torch.device('cpu')
